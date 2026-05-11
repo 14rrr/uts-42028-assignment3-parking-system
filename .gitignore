@@ -1,0 +1,30 @@
+# Python/runtime
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local data and generated caches
+data/processed/
+data/raw/*
+*.log
+
+# Stray local install artifact
+=0.20.0
+
+# Legacy/custom output archives kept local; active lecture-aligned outputs are tracked.
+outputs/reports/legacy_*
+outputs/reports/initial_results.csv
+outputs/reports/part_c_*
+outputs/plots/legacy_*
+
+# Checkpoints: keep GitHub push practical without Git LFS.
+# The LeNet-5 and ResNet-18 checkpoints are small enough for normal Git.
+# AlexNet exceeds GitHub's 100 MB normal blob limit and stays local unless Git LFS is added.
+outputs/checkpoints/*
+!outputs/checkpoints/lenet_5_cnn.pt
+!outputs/checkpoints/resnet_18_cnn.pt
