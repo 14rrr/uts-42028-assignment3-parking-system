@@ -22,9 +22,9 @@ outputs/reports/initial_results.csv
 outputs/reports/part_c_*
 outputs/plots/legacy_*
 
-# Checkpoints: keep GitHub push practical without Git LFS.
-# The LeNet-5 and ResNet-18 checkpoints are small enough for normal Git.
-# AlexNet exceeds GitHub's 100 MB normal blob limit and stays local unless Git LFS is added.
+# Checkpoints: keep legacy checkpoints local. Active checkpoints are tracked,
+# with AlexNet stored via Git LFS because it exceeds GitHub's normal 100 MB limit.
 outputs/checkpoints/*
 !outputs/checkpoints/lenet_5_cnn.pt
+!outputs/checkpoints/alexnet_cnn.pt
 !outputs/checkpoints/resnet_18_cnn.pt

@@ -149,12 +149,9 @@ Checkpoint mapping:
 - `alexnet` -> `outputs/checkpoints/alexnet_cnn.pt`
 - `resnet18` -> `outputs/checkpoints/resnet_18_cnn.pt`
 
-GitHub publication note: Git LFS is not installed in this environment, so the
-228 MB AlexNet checkpoint is kept on disk but excluded from the normal Git
-commit because GitHub rejects regular blobs over 100 MB. The LeNet-5 and
-ResNet-18 checkpoints are small enough to include directly. To reuse AlexNet
-from a fresh clone, copy `outputs/checkpoints/alexnet_cnn.pt` from the original
-project folder or add Git LFS and track the checkpoint before publishing it.
+GitHub publication note: all three active checkpoints are included in the
+private repository. The 228 MB AlexNet checkpoint is tracked with Git LFS
+because GitHub rejects regular blobs over 100 MB.
 
 ## Outputs
 
@@ -167,11 +164,10 @@ After a successful run, the pipeline saves:
 - recommended summary in `outputs/reports/recommended_lecture_aligned_part_c_ready.md`
 
 For GitHub, the committed outputs are the active lecture-aligned reports,
-training histories, plots, and the LeNet-5/ResNet-18 checkpoints. The local
-virtual environment, processed PKLot images, Python caches, temporary logs,
-legacy report/plot archives, legacy checkpoint files, and the oversized AlexNet
-checkpoint are excluded to keep the repository practical for a standard GitHub
-push.
+training histories, plots, and all three active checkpoints. The local virtual
+environment, processed PKLot images, Python caches, temporary logs, legacy
+report/plot archives, and legacy checkpoint files are excluded to keep the
+repository practical for a standard GitHub push.
 
 ## Notes
 
