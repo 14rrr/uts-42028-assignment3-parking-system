@@ -180,10 +180,11 @@ detection system.
 
 The GUI includes:
 
-- Dashboard with recommendation, metrics, clean frame ROI overlay, and slot grid
-- Detection Demo for full-frame upload/default-frame CNN detection
-- read-only ROI Calibration summary for the official PKLot ROI map
-- concise methodology notes explaining fixed-camera ROI image classification
+- `Parking Detection` for model selection, full-frame upload/default-frame CNN
+  detection, ROI overlay, metrics, recommendation, and slot grid
+- `Driver Display` for a simple driver-facing recommendation view
+- `ROI & Methodology` for the read-only official PKLot ROI summary and concise
+  methodology notes
 
 The GUI does not require `data/processed/pklot_binary` to exist. Users can
 upload a full parking-zone frame for ROI cropping/classification. The previous

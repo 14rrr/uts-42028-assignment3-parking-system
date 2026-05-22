@@ -15,9 +15,7 @@ from torchvision import transforms
 PROJECT_ROOT = Path(__file__).resolve().parent
 SRC_DIR = PROJECT_ROOT / "src"
 ASSETS_DIR = PROJECT_ROOT / "assets"
-SAMPLE_ROI_CONFIG_PATH = ASSETS_DIR / "sample_slot_map.json"
 CUSTOM_ROI_CONFIG_PATH = ASSETS_DIR / "custom_slot_map.json"
-MANUAL_STATUS_PATH = ASSETS_DIR / "manual_slot_status.json"
 DEMO_FRAME_CLEAN_PATH = ASSETS_DIR / "demo_frame_clean.jpg"
 LEGACY_FRAME_PATH = ASSETS_DIR / "image.jpg"
 if str(SRC_DIR) not in sys.path:
@@ -32,12 +30,6 @@ MODEL_OPTIONS = {
     "AlexNet CNN": "alexnet",
     "ResNet-18 CNN": "resnet18",
 }
-
-MODEL_RESULTS = [
-    {"Model": "LeNet-5 CNN", "Train Accuracy": "0.998105", "Validation Accuracy": "0.998144", "Test Accuracy": "0.997629"},
-    {"Model": "AlexNet CNN", "Train Accuracy": "0.998467", "Validation Accuracy": "0.998387", "Test Accuracy": "0.998309"},
-    {"Model": "ResNet-18 CNN", "Train Accuracy": "0.999300", "Validation Accuracy": "0.999291", "Test Accuracy": "0.999164"},
-]
 
 LABEL_MAPPING = {
     0: "Empty",
@@ -63,27 +55,9 @@ SIMULATED_OCCUPIED_SLOTS = {
 }
 
 
-def default_roi_slots() -> list[dict[str, Any]]:
-    slots: list[dict[str, Any]] = []
-    row_y = {"A": 70, "B": 180, "C": 310, "D": 420}
-    for row in ("A", "B", "C", "D"):
-        for number in range(1, 11):
-            x = 70 + (number - 1) * 88
-            y = row_y[row]
-            slots.append(
-                {
-                    "slot_id": f"{row}{number:02d}",
-                    "row": row,
-                    "spot": number,
-                    "roi": [x, y, 64, 82],
-                }
-            )
-    return slots
-
-
-def load_roi_config(path: Path = SAMPLE_ROI_CONFIG_PATH) -> list[dict[str, Any]]:
+def load_roi_config(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
-        return default_roi_slots()
+        raise FileNotFoundError(f"ROI configuration not found: {path}")
 
     with path.open("r", encoding="utf-8") as file:
         data = json.load(file)
@@ -97,20 +71,7 @@ def load_roi_config(path: Path = SAMPLE_ROI_CONFIG_PATH) -> list[dict[str, Any]]
 def load_active_roi_config() -> tuple[list[dict[str, Any]], str, Path | None]:
     if CUSTOM_ROI_CONFIG_PATH.exists():
         return load_roi_config(CUSTOM_ROI_CONFIG_PATH), "Custom ROI map", CUSTOM_ROI_CONFIG_PATH
-    if SAMPLE_ROI_CONFIG_PATH.exists():
-        return load_roi_config(SAMPLE_ROI_CONFIG_PATH), "Sample ROI map", SAMPLE_ROI_CONFIG_PATH
-    return default_roi_slots(), "Built-in default map", None
-
-
-def load_roi_boundary(path: Path | None) -> list[list[int]]:
-    if path is None or not path.exists():
-        return []
-    with path.open("r", encoding="utf-8") as file:
-        data = json.load(file)
-    boundary = data.get("parking_zone_boundary", [])
-    if not isinstance(boundary, list):
-        return []
-    return [[int(round(float(x))), int(round(float(y)))] for x, y in boundary]
+    raise FileNotFoundError(f"Official ROI map is required: {CUSTOM_ROI_CONFIG_PATH}")
 
 
 def derive_roi_coverage_boundary(roi_slots: list[dict[str, Any]], padding: int = 12) -> list[list[int]]:
@@ -174,45 +135,6 @@ def get_default_demo_frame() -> tuple[Image.Image | None, Path | None]:
     return Image.open(frame_path).convert("RGB"), frame_path
 
 
-def load_manual_status_override(path: Path = MANUAL_STATUS_PATH) -> dict[str, Any]:
-    if not path.exists():
-        return {"occupied": [], "available": [], "recommended": None}
-    with path.open("r", encoding="utf-8") as file:
-        data = json.load(file)
-    return {
-        "occupied": [str(slot_id).upper() for slot_id in data.get("occupied", [])],
-        "available": [str(slot_id).upper() for slot_id in data.get("available", [])],
-        "recommended": str(data["recommended"]).upper() if data.get("recommended") else None,
-    }
-
-
-def apply_manual_status_override(slots: list[dict[str, str | float]]) -> list[dict[str, str | float]]:
-    override = load_manual_status_override()
-    occupied_ids = set(override["occupied"])
-    available_ids = set(override["available"])
-    recommended_id = override["recommended"]
-
-    updated: list[dict[str, str | float]] = []
-    for slot in slots:
-        slot_copy = dict(slot)
-        slot_id = str(slot_copy["Slot ID"]).upper()
-        if slot_id in occupied_ids:
-            slot_copy["Status"] = "occupied"
-        elif slot_id in available_ids:
-            slot_copy["Status"] = "available"
-        updated.append(slot_copy)
-
-    if recommended_id:
-        for slot in updated:
-            if str(slot["Status"]).startswith("recommended"):
-                slot["Status"] = "available"
-        for slot in updated:
-            if str(slot["Slot ID"]).upper() == recommended_id and slot["Status"] != "occupied":
-                slot["Status"] = "recommended"
-                break
-    return apply_recommendations(updated)
-
-
 def normalize_roi_slots(slots: list[dict[str, Any]]) -> list[dict[str, Any]]:
     normalized: list[dict[str, Any]] = []
     for index, slot in enumerate(slots, start=1):
@@ -247,63 +169,6 @@ def normalize_roi_slots(slots: list[dict[str, Any]]) -> list[dict[str, Any]]:
             }
         )
     return normalized
-
-
-def save_roi_config(slots: list[dict[str, Any]], path: Path = CUSTOM_ROI_CONFIG_PATH) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {
-        "camera": {
-            "name": "Custom fixed camera calibration",
-            "calibration_note": "Custom ROI coordinates for the current fixed camera view.",
-            "updated_at": datetime.now().isoformat(timespec="seconds"),
-        },
-        "slots": normalize_roi_slots(slots),
-    }
-    with path.open("w", encoding="utf-8") as file:
-        json.dump(payload, file, indent=2)
-
-
-def roi_slots_to_editor_rows(slots: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
-    for slot in normalize_roi_slots(slots):
-        x, y, width, height = slot_bounds(slot)
-        rows.append(
-            {
-                "slot_id": slot["slot_id"],
-                "row": slot["row"],
-                "spot": slot["spot"],
-                "x": x,
-                "y": y,
-                "width": width,
-                "height": height,
-            }
-        )
-    return rows
-
-
-def editor_rows_to_roi_slots(rows: Any) -> list[dict[str, Any]]:
-    if hasattr(rows, "to_dict"):
-        rows = rows.to_dict("records")
-
-    slots: list[dict[str, Any]] = []
-    for row in rows:
-        slot_id = str(row.get("slot_id") or row.get("Slot ID") or "").strip().upper()
-        if not slot_id:
-            continue
-        slots.append(
-            {
-                "slot_id": slot_id,
-                "row": str(row.get("row") or row.get("Row") or slot_id[0]).strip().upper() or slot_id[0],
-                "spot": int(row.get("spot") or row.get("Spot") or slot_id[1:] or 1),
-                "roi": [
-                    int(row.get("x", 0)),
-                    int(row.get("y", 0)),
-                    max(1, int(row.get("width", 64))),
-                    max(1, int(row.get("height", 82))),
-                ],
-            }
-        )
-    return normalize_roi_slots(slots)
 
 
 def preprocess_image(image: Image.Image, image_size: int = 128) -> torch.Tensor:
@@ -358,30 +223,6 @@ def slot_coordinates_text(slot: dict[str, Any]) -> str:
     if slot.get("polygon"):
         return f"polygon ({len(slot['polygon'])} points)"
     return roi_as_text(slot["roi"])
-
-
-def generate_parking_slots(roi_slots: list[dict[str, Any]] | None = None) -> list[dict[str, str | float]]:
-    slots: list[dict[str, str | float]] = []
-    roi_slots = roi_slots or default_roi_slots()
-
-    for roi_slot in roi_slots:
-        slot_id = str(roi_slot["slot_id"])
-        row = str(roi_slot["row"])
-        status = "occupied" if slot_id in SIMULATED_OCCUPIED_SLOTS else "available"
-        confidence_seed = (ord(row) + int(roi_slot["spot"]) * 7) % 9
-        confidence = 0.91 + confidence_seed / 100
-        slots.append(
-            {
-                "Slot ID": slot_id,
-                "Row": row,
-                "Spot": f"{int(roi_slot['spot']):02d}",
-                "ROI coordinates": slot_coordinates_text(roi_slot),
-                "Status": status,
-                "Confidence": f"{confidence:.2f}",
-                "Last updated": datetime.now().strftime("%H:%M:%S"),
-            }
-        )
-    return apply_recommendations(slots)
 
 
 def generate_ground_truth_slots(roi_slots: list[dict[str, Any]]) -> list[dict[str, str | float]]:
@@ -824,13 +665,13 @@ def run_app() -> None:
     )
 
     if "slot_results" not in st.session_state or st.session_state.get("source_mode") == "Simulation":
-        st.session_state.slot_results = apply_manual_status_override(generate_ground_truth_slots(roi_slots))
+        st.session_state.slot_results = generate_ground_truth_slots(roi_slots)
         st.session_state.source_mode = "PKLot annotation status"
         st.session_state.status_note = "Initial status is loaded from official PKLot annotations. Run CNN Detection to update from the current frame."
         st.session_state.last_updated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         st.session_state.last_detection_summary = None
 
-    slots = apply_manual_status_override(st.session_state.slot_results)
+    slots = st.session_state.slot_results
     st.session_state.slot_results = slots
     available, occupied, recommended = slot_counts(slots)
     total_spaces = len(slots)
@@ -877,7 +718,6 @@ def run_app() -> None:
                     model_key = MODEL_OPTIONS[selected_camera_model]
                     model = cached_model(model_key)
                     detected_slots = classify_rois(model, frame, roi_slots, image_size=config.image_size)
-                    detected_slots = apply_manual_status_override(detected_slots)
                     detected_available, detected_occupied, detected_recommended = slot_counts(detected_slots)
                     st.session_state.slot_results = detected_slots
                     st.session_state.source_mode = f"CNN detection from {source_label} ({selected_camera_model})"
@@ -980,7 +820,6 @@ def run_app() -> None:
             st.write(f"Display boundary points: `{len(roi_boundary)}`")
             st.write("Boundary is derived from active official ROI polygons.")
             st.write("Rebuild script: `tools/rebuild_official_pklot_roi_map.py`")
-            st.write(f"Status override file: `{MANUAL_STATUS_PATH.relative_to(PROJECT_ROOT)}`")
             if preview_path.exists():
                 st.image(Image.open(preview_path).convert("RGB"), caption="Saved debug/reference preview", use_container_width=True)
             st.dataframe(

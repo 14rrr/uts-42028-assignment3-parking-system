@@ -9,6 +9,7 @@ __pycache__/
 .ruff_cache/
 
 # Local data and generated caches
+data/
 data/processed/
 data/raw/*
 *.log
