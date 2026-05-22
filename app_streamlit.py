@@ -18,7 +18,6 @@ ASSETS_DIR = PROJECT_ROOT / "assets"
 SAMPLE_ROI_CONFIG_PATH = ASSETS_DIR / "sample_slot_map.json"
 CUSTOM_ROI_CONFIG_PATH = ASSETS_DIR / "custom_slot_map.json"
 MANUAL_STATUS_PATH = ASSETS_DIR / "manual_slot_status.json"
-PKLOT_DEMO_FEED_PATH = ASSETS_DIR / "pklot_demo_feed.mp4"
 DEMO_FRAME_CLEAN_PATH = ASSETS_DIR / "demo_frame_clean.jpg"
 LEGACY_FRAME_PATH = ASSETS_DIR / "image.jpg"
 if str(SRC_DIR) not in sys.path:
@@ -62,7 +61,6 @@ SIMULATED_OCCUPIED_SLOTS = {
     "D07",
     "D08",
 }
-DEFAULT_RECOMMENDED_SLOT = "C05"
 
 
 def default_roi_slots() -> list[dict[str, Any]]:
@@ -115,12 +113,65 @@ def load_roi_boundary(path: Path | None) -> list[list[int]]:
     return [[int(round(float(x))), int(round(float(y)))] for x, y in boundary]
 
 
+def derive_roi_coverage_boundary(roi_slots: list[dict[str, Any]], padding: int = 12) -> list[list[int]]:
+    points: list[tuple[float, float]] = []
+    for slot in roi_slots:
+        if slot.get("polygon"):
+            points.extend((float(x), float(y)) for x, y in slot["polygon"])
+        else:
+            x, y, width, height = slot_bounds(slot)
+            points.extend(
+                [
+                    (float(x), float(y)),
+                    (float(x + width), float(y)),
+                    (float(x + width), float(y + height)),
+                    (float(x), float(y + height)),
+                ]
+            )
+    unique_points = sorted(set(points))
+    if len(unique_points) < 3:
+        return []
+
+    def cross(origin: tuple[float, float], left: tuple[float, float], right: tuple[float, float]) -> float:
+        return (left[0] - origin[0]) * (right[1] - origin[1]) - (left[1] - origin[1]) * (right[0] - origin[0])
+
+    lower: list[tuple[float, float]] = []
+    for point in unique_points:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], point) <= 0:
+            lower.pop()
+        lower.append(point)
+
+    upper: list[tuple[float, float]] = []
+    for point in reversed(unique_points):
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], point) <= 0:
+            upper.pop()
+        upper.append(point)
+
+    hull = lower[:-1] + upper[:-1]
+    centroid_x = sum(x for x, _ in hull) / len(hull)
+    centroid_y = sum(y for _, y in hull) / len(hull)
+    expanded: list[list[int]] = []
+    for x, y in hull:
+        dx = x - centroid_x
+        dy = y - centroid_y
+        length = max((dx * dx + dy * dy) ** 0.5, 1.0)
+        expanded.append([int(round(x + padding * dx / length)), int(round(y + padding * dy / length))])
+    return expanded
+
+
 def default_frame_path() -> Path | None:
     if DEMO_FRAME_CLEAN_PATH.exists():
         return DEMO_FRAME_CLEAN_PATH
     if LEGACY_FRAME_PATH.exists():
         return LEGACY_FRAME_PATH
     return None
+
+
+def get_default_demo_frame() -> tuple[Image.Image | None, Path | None]:
+    frame_path = default_frame_path()
+    if frame_path is None:
+        return None, None
+    return Image.open(frame_path).convert("RGB"), frame_path
 
 
 def load_manual_status_override(path: Path = MANUAL_STATUS_PATH) -> dict[str, Any]:
@@ -153,13 +204,13 @@ def apply_manual_status_override(slots: list[dict[str, str | float]]) -> list[di
 
     if recommended_id:
         for slot in updated:
-            if slot["Status"] == "recommended":
+            if str(slot["Status"]).startswith("recommended"):
                 slot["Status"] = "available"
         for slot in updated:
             if str(slot["Slot ID"]).upper() == recommended_id and slot["Status"] != "occupied":
                 slot["Status"] = "recommended"
                 break
-    return updated
+    return apply_recommendations(updated)
 
 
 def normalize_roi_slots(slots: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -319,9 +370,6 @@ def generate_parking_slots(roi_slots: list[dict[str, Any]] | None = None) -> lis
         status = "occupied" if slot_id in SIMULATED_OCCUPIED_SLOTS else "available"
         confidence_seed = (ord(row) + int(roi_slot["spot"]) * 7) % 9
         confidence = 0.91 + confidence_seed / 100
-        if slot_id == DEFAULT_RECOMMENDED_SLOT:
-            status = "recommended"
-            confidence = 0.98
         slots.append(
             {
                 "Slot ID": slot_id,
@@ -333,7 +381,7 @@ def generate_parking_slots(roi_slots: list[dict[str, Any]] | None = None) -> lis
                 "Last updated": datetime.now().strftime("%H:%M:%S"),
             }
         )
-    return slots
+    return apply_recommendations(slots)
 
 
 def generate_ground_truth_slots(roi_slots: list[dict[str, Any]]) -> list[dict[str, str | float]]:
@@ -355,11 +403,7 @@ def generate_ground_truth_slots(roi_slots: list[dict[str, Any]]) -> list[dict[st
             }
         )
 
-    recommended = choose_recommended_slot(slots)
-    for slot in slots:
-        if slot["Slot ID"] == recommended and slot["Status"] == "available":
-            slot["Status"] = "recommended"
-    return slots
+    return apply_recommendations(slots)
 
 
 def row_count_summary(roi_slots: list[dict[str, Any]]) -> str:
@@ -370,18 +414,102 @@ def row_count_summary(roi_slots: list[dict[str, Any]]) -> str:
     return ", ".join(f"{row}: {count}" for row, count in sorted(rows.items()))
 
 
-def slot_counts(slots: list[dict[str, str | float]]) -> tuple[int, int, str]:
-    available = sum(1 for slot in slots if slot["Status"] in {"available", "recommended"})
+def base_slot_status(slot: dict[str, str | float]) -> str:
+    status = str(slot.get("Status", "")).strip().lower()
+    if status in {"recommended", "recommended_secondary"}:
+        return "available"
+    return status
+
+
+def rank_recommended_slots(slots: list[dict[str, str | float]], max_recommendations: int = 3) -> list[str]:
+    slot_by_position: dict[tuple[str, int], dict[str, str | float]] = {}
+    available_slots: list[dict[str, str | float]] = []
+    for slot in slots:
+        row = str(slot["Row"])
+        spot = int(str(slot["Spot"]))
+        slot_by_position[(row, spot)] = slot
+        if base_slot_status(slot) == "available":
+            available_slots.append(slot)
+
+    scored: list[tuple[int, str, int, str]] = []
+    for slot in available_slots:
+        row = str(slot["Row"])
+        spot = int(str(slot["Spot"]))
+        left = slot_by_position.get((row, spot - 1))
+        right = slot_by_position.get((row, spot + 1))
+        left_available = left is not None and base_slot_status(left) == "available"
+        right_available = right is not None and base_slot_status(right) == "available"
+        has_left = left is not None
+        has_right = right is not None
+
+        score = 0
+        if left_available:
+            score += 2
+        if right_available:
+            score += 2
+        if has_left and has_right:
+            score += 1
+
+        scored.append((score, row, spot, str(slot["Slot ID"])))
+
+    scored.sort(key=lambda item: (-item[0], item[1], item[2]))
+    return [slot_id for _, _, _, slot_id in scored[:max_recommendations]]
+
+
+def apply_recommendations(slots: list[dict[str, str | float]], max_recommendations: int = 3) -> list[dict[str, str | float]]:
+    updated: list[dict[str, str | float]] = []
+    for slot in slots:
+        slot_copy = dict(slot)
+        if base_slot_status(slot_copy) != "occupied":
+            slot_copy["Status"] = "available"
+        else:
+            slot_copy["Status"] = "occupied"
+        updated.append(slot_copy)
+
+    recommended_ids = rank_recommended_slots(updated, max_recommendations=max_recommendations)
+    for index, slot_id in enumerate(recommended_ids):
+        for slot in updated:
+            if str(slot["Slot ID"]) == slot_id and slot["Status"] != "occupied":
+                slot["Status"] = "recommended" if index == 0 else "recommended_secondary"
+                break
+    return updated
+
+
+def recommendation_reason(slot_id: str, slots: list[dict[str, str | float]]) -> str:
+    slot = next((item for item in slots if str(item["Slot ID"]) == slot_id), None)
+    if slot is None:
+        return "Available space"
+    row = str(slot["Row"])
+    spot = int(str(slot["Spot"]))
+    by_position = {(str(item["Row"]), int(str(item["Spot"]))): item for item in slots}
+    left = by_position.get((row, spot - 1))
+    right = by_position.get((row, spot + 1))
+    available_neighbours = sum(
+        neighbour is not None and base_slot_status(neighbour) == "available"
+        for neighbour in (left, right)
+    )
+    if available_neighbours == 2:
+        return "Open space with both neighbouring bays available"
+    if available_neighbours == 1:
+        return "Open space with one neighbouring bay available"
+    return "Available space"
+
+
+def recommended_slot_ids(slots: list[dict[str, str | float]]) -> list[str]:
+    primary = [str(slot["Slot ID"]) for slot in slots if slot["Status"] == "recommended"]
+    secondary = [str(slot["Slot ID"]) for slot in slots if slot["Status"] == "recommended_secondary"]
+    return primary + secondary
+
+
+def slot_counts(slots: list[dict[str, str | float]]) -> tuple[int, int, list[str]]:
+    available = sum(1 for slot in slots if base_slot_status(slot) == "available")
     occupied = sum(1 for slot in slots if slot["Status"] == "occupied")
-    recommended = next((str(slot["Slot ID"]) for slot in slots if slot["Status"] == "recommended"), "None")
-    return available, occupied, recommended
+    return available, occupied, recommended_slot_ids(slots)
 
 
 def choose_recommended_slot(slots: list[dict[str, str | float]]) -> str:
-    for slot in slots:
-        if slot["Status"] == "available":
-            return str(slot["Slot ID"])
-    return ""
+    recommended = rank_recommended_slots(slots, max_recommendations=1)
+    return recommended[0] if recommended else ""
 
 
 def crop_slot(frame: Image.Image, slot: dict[str, Any]) -> Image.Image:
@@ -421,11 +549,7 @@ def classify_rois(
             }
         )
 
-    recommended = choose_recommended_slot(results)
-    for result in results:
-        if result["Slot ID"] == recommended and result["Status"] == "available":
-            result["Status"] = "recommended"
-    return results
+    return apply_recommendations(results)
 
 
 def create_simulated_camera_frame(roi_slots: list[dict[str, Any]]) -> Image.Image:
@@ -471,6 +595,7 @@ def draw_roi_overlay(
         "available": "#f3c623",
         "occupied": "#d82d2d",
         "recommended": "#168a35",
+        "recommended_secondary": "#8bdc8f",
     }
     if show_boundary and boundary:
         boundary_points = [(int(x), int(y)) for x, y in boundary]
@@ -478,43 +603,79 @@ def draw_roi_overlay(
     for roi_slot in roi_slots:
         slot_id = str(roi_slot["slot_id"])
         status = status_by_id.get(slot_id, "available")
-        color = color_by_status.get(status, "#13a538")
+        color = color_by_status.get(status, "#f3c623")
+        line_width = 6 if status == "recommended" else 4
         if roi_slot.get("polygon"):
             points = [(int(x), int(y)) for x, y in roi_slot["polygon"]]
-            draw.line(points + [points[0]], fill=color, width=4)
+            draw.line(points + [points[0]], fill=color, width=line_width)
             label_x, label_y = points[0]
         else:
             x, y, width, height = slot_bounds(roi_slot)
-            draw.rectangle((x, y, x + width, y + height), outline=color, width=4)
+            draw.rectangle((x, y, x + width, y + height), outline=color, width=line_width)
             label_x, label_y = x, y
-        label_fill = "#101820" if status == "available" else "#ffffff"
+        label_fill = "#101820" if status in {"available", "recommended_secondary"} else "#ffffff"
         draw.rectangle((label_x, label_y, label_x + 48, label_y + 18), fill=color)
         draw.text((label_x + 4, label_y + 2), slot_id, fill=label_fill)
     return overlay
 
 
-def render_status_cards(st, total: int, available: int, occupied: int, recommended: str) -> None:
-    col1, col2, col3, col4 = st.columns(4)
+def draw_roi_geometry_overlay(
+    frame: Image.Image,
+    roi_slots: list[dict[str, Any]],
+    boundary: list[list[int]] | None = None,
+    show_boundary: bool = False,
+) -> Image.Image:
+    overlay = frame.convert("RGB").copy()
+    draw = ImageDraw.Draw(overlay)
+    if show_boundary and boundary:
+        boundary_points = [(int(x), int(y)) for x, y in boundary]
+        draw.line(boundary_points + [boundary_points[0]], fill="#1d6bff", width=4)
+
+    for roi_slot in roi_slots:
+        slot_id = str(roi_slot["slot_id"])
+        if roi_slot.get("polygon"):
+            points = [(int(x), int(y)) for x, y in roi_slot["polygon"]]
+            draw.line(points + [points[0]], fill="#ffffff", width=3)
+            label_x, label_y = points[0]
+        else:
+            x, y, width, height = slot_bounds(roi_slot)
+            draw.rectangle((x, y, x + width, y + height), outline="#ffffff", width=3)
+            label_x, label_y = x, y
+        draw.rectangle((label_x, label_y, label_x + 48, label_y + 18), fill="#101820")
+        draw.text((label_x + 4, label_y + 2), slot_id, fill="#ffffff")
+    return overlay
+
+
+def render_status_cards(st, total: int, available: int, occupied: int) -> None:
+    col1, col2, col3 = st.columns(3)
     col1.metric("Total spaces", total)
     col2.metric("Available spaces", available)
     col3.metric("Occupied spaces", occupied)
-    col4.metric("Recommended space", recommended)
 
 
-def render_recommendation_card(st, recommended: str) -> None:
-    if recommended == "None":
+def render_recommendation_card(st, recommendations: list[str], slots: list[dict[str, str | float]]) -> None:
+    if not recommendations:
         value = "No spaces available"
-        text = "Please wait for the next available bay"
+        text = "No available spaces detected"
+        other_options = ""
     else:
-        value = f"Row {recommended[0]}, Spot {recommended[1:]}"
-        text = "Please proceed to the highlighted bay"
+        primary = recommendations[0]
+        value = f"Row {primary[0]}, Spot {primary[1:]}"
+        text = recommendation_reason(primary, slots)
+        secondary = recommendations[1:3]
+        if secondary:
+            option_text = ", ".join(f"Row {slot_id[0]}, Spot {slot_id[1:]}" for slot_id in secondary)
+            other_options = f"<div class='recommendation-options'><strong>Other good options:</strong> {option_text}</div>"
+        else:
+            other_options = ""
 
     st.markdown(
         f"""
         <div class='recommendation-card'>
-            <div class='recommendation-label'>Recommended parking space</div>
+            <div class='recommendation-label'>Best parking space</div>
             <div class='recommendation-value'>{value}</div>
             <div class='recommendation-text'>{text}</div>
+            {other_options}
         </div>
         """,
         unsafe_allow_html=True,
@@ -533,10 +694,13 @@ def render_parking_map(st, slots: list[dict[str, str | float]]) -> None:
                 "available": "slot-available",
                 "occupied": "slot-occupied",
                 "recommended": "slot-recommended",
+                "recommended_secondary": "slot-recommended-secondary",
             }[status]
             label = f"{slot['Slot ID']}"
             if status == "recommended":
-                label = f"{slot['Slot ID']}<br><span>REC</span>"
+                label = f"{slot['Slot ID']}<br><span>BEST</span>"
+            elif status == "recommended_secondary":
+                label = f"{slot['Slot ID']}<br><span>ALT</span>"
             column.markdown(
                 f"<div class='parking-slot {css_class}'>{label}</div>",
                 unsafe_allow_html=True,
@@ -549,7 +713,8 @@ def render_parking_legend(st) -> None:
         <div class='map-legend'>
             <span><i class='legend-dot legend-occupied'></i>Red: Occupied</span>
             <span><i class='legend-dot legend-available'></i>Yellow: Available</span>
-            <span><i class='legend-dot legend-recommended'></i>Green: Recommended</span>
+            <span><i class='legend-dot legend-recommended'></i>Green: Best recommendation</span>
+            <span><i class='legend-dot legend-recommended-secondary'></i>Light green: Alternative recommendation</span>
         </div>
         """,
         unsafe_allow_html=True,
@@ -567,8 +732,8 @@ def run_app() -> None:
 
     config = ExperimentConfig()
     roi_slots, roi_map_label, roi_map_path = load_active_roi_config()
-    roi_boundary = load_roi_boundary(roi_map_path)
-    current_default_frame_path = default_frame_path()
+    roi_boundary = derive_roi_coverage_boundary(roi_slots)
+    default_demo_frame, current_default_frame_path = get_default_demo_frame()
 
     @st.cache_resource(show_spinner="Loading trained CNN checkpoint...")
     def cached_model(model_key: str) -> torch.nn.Module:
@@ -579,14 +744,15 @@ def run_app() -> None:
             map_location="cpu",
         )
 
-    st.set_page_config(page_title="Parkivo Parking Availability", page_icon="P", layout="wide")
+    st.set_page_config(page_title="Parkivo Parking Availability System", page_icon="P", layout="wide")
     st.markdown(
         """
         <style>
-        .block-container { padding-top: 1.5rem; }
+        .block-container { padding-top: 0.85rem; padding-bottom: 1.25rem; }
+        footer { visibility: hidden; }
         .recommendation-card {
             border-radius: 8px;
-            border: 2px solid #1c70c8;
+            border: 2px solid #168a35;
             background: #fff9c7;
             padding: 1.35rem 1.5rem;
             margin-bottom: 1rem;
@@ -594,8 +760,12 @@ def run_app() -> None:
         .recommendation-label { font-size: 1rem; font-weight: 700; color: #32404a; }
         .recommendation-value { font-size: 2.7rem; font-weight: 800; color: #1f2a30; line-height: 1.1; }
         .recommendation-text { font-size: 1.1rem; color: #32404a; margin-top: 0.3rem; }
+        .recommendation-options { font-size: 0.95rem; color: #32404a; margin-top: 0.8rem; }
         .parking-slot {
-            min-height: 46px;
+            width: 100%;
+            box-sizing: border-box;
+            min-height: 50px;
+            padding: 0.35rem 0.2rem;
             border-radius: 6px;
             display: flex;
             align-items: center;
@@ -608,8 +778,14 @@ def run_app() -> None:
         }
         .parking-slot span { font-size: 0.72rem; }
         .slot-available { background: #fff2a8; color: #594a00; }
-        .slot-occupied { background: #ffd9d9; color: #8a1f1f; }
-        .slot-recommended { background: #d8f5df; color: #145a27; border: 3px solid #168a35; }
+        .slot-occupied {
+            background: #d82d2d;
+            color: #ffffff;
+            border: 3px solid #991b1b;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35);
+        }
+        .slot-recommended { background: #168a35; color: #ffffff; border: 4px solid #0d5f23; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.55); }
+        .slot-recommended-secondary { background: #d8f5df; color: #145a27; border: 3px solid #168a35; }
         .map-legend {
             display: flex;
             gap: 0.9rem;
@@ -629,7 +805,8 @@ def run_app() -> None:
         }
         .legend-occupied { background: #ffd9d9; }
         .legend-available { background: #fff2a8; }
-        .legend-recommended { background: #d8f5df; }
+        .legend-recommended { background: #168a35; }
+        .legend-recommended-secondary { background: #d8f5df; }
         .status-line {
             color: #53616b;
             font-size: 0.92rem;
@@ -658,51 +835,18 @@ def run_app() -> None:
     available, occupied, recommended = slot_counts(slots)
     total_spaces = len(slots)
 
-    dashboard_tab, detection_tab, calibration_tab, about_tab = st.tabs(
-        ["Dashboard", "Detection Demo", "ROI Calibration", "About / Methodology"]
-    )
+    detection_tab, driver_tab, methodology_tab = st.tabs(["Parking Detection", "Driver Display", "ROI & Methodology"])
 
-    with dashboard_tab:
+    with detection_tab:
         st.title("Parkivo Parking Availability System")
         st.caption("Fixed-camera parking-zone availability using CNN classification on cropped ROI images.")
 
-        left, right = st.columns([1.3, 1])
-        with left:
-            show_dashboard_boundary = False
-            with st.expander("Advanced display options", expanded=False):
-                active_path_text = str(roi_map_path.relative_to(PROJECT_ROOT)) if roi_map_path else "built-in defaults"
-                st.write(f"Active ROI map: `{active_path_text}`")
-                st.write(f"Source mode: `{st.session_state.source_mode}`")
-                st.write(f"Last updated: `{st.session_state.last_updated}`")
-                show_dashboard_boundary = st.checkbox("Show monitored-zone boundary", value=False, key="dashboard_show_boundary")
+        top_left, top_right = st.columns([1.35, 1])
 
-            if current_default_frame_path is not None:
-                dashboard_frame = Image.open(current_default_frame_path).convert("RGB")
-            else:
-                dashboard_frame = create_simulated_camera_frame(roi_slots)
-            st.image(
-                draw_roi_overlay(dashboard_frame, slots, roi_slots, boundary=roi_boundary, show_boundary=show_dashboard_boundary),
-                caption="Monitored parking zone with official ROI overlay",
-                use_container_width=True,
-            )
-
-        with right:
-            render_recommendation_card(st, recommended)
-            render_status_cards(st, total_spaces, available, occupied, recommended)
-            render_parking_legend(st)
-            st.info(str(st.session_state.get("status_note", "")))
-
-        st.subheader("Parking Zone Status")
-        render_parking_map(st, slots)
-
-    with detection_tab:
-        st.header("Detection Demo")
-        st.write("Run CNN classification on each official ROI crop from the current full-frame parking-zone image.")
-        selected_camera_model = st.selectbox("Model", list(MODEL_OPTIONS.keys()), index=2)
-
-        with st.expander("Upload a full-frame parking-zone image", expanded=False):
+        with top_right:
+            selected_camera_model = st.selectbox("CNN model", list(MODEL_OPTIONS.keys()), index=2)
             uploaded_frame = st.file_uploader(
-                "Full-frame image",
+                "Upload full-frame image",
                 type=["jpg", "jpeg", "png", "bmp", "webp"],
                 key="full_frame_upload",
             )
@@ -711,8 +855,8 @@ def run_app() -> None:
             frame = Image.open(uploaded_frame).convert("RGB")
             source_label = "uploaded frame"
             can_classify_frame = True
-        elif current_default_frame_path is not None:
-            frame = Image.open(current_default_frame_path).convert("RGB")
+        elif default_demo_frame is not None:
+            frame = default_demo_frame.copy()
             source_label = "default clean PKLot frame"
             can_classify_frame = True
         else:
@@ -720,33 +864,44 @@ def run_app() -> None:
             source_label = "simulated fallback frame"
             can_classify_frame = False
 
-        if st.button("Run CNN Detection", type="primary"):
-            if can_classify_frame:
-                model_key = MODEL_OPTIONS[selected_camera_model]
-                model = cached_model(model_key)
-                detected_slots = classify_rois(model, frame, roi_slots, image_size=config.image_size)
-                detected_slots = apply_manual_status_override(detected_slots)
-                detected_available, detected_occupied, detected_recommended = slot_counts(detected_slots)
-                st.session_state.slot_results = detected_slots
-                st.session_state.source_mode = f"CNN detection from {source_label} ({selected_camera_model})"
-                st.session_state.status_note = "Status is based on CNN predictions from the current frame."
-                st.session_state.last_updated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                st.session_state.last_detection_summary = {
-                    "Model used": selected_camera_model,
-                    "Total processed slots": len(detected_slots),
-                    "Available count": detected_available,
-                    "Occupied count": detected_occupied,
-                    "Recommended slot": detected_recommended,
-                }
-                st.rerun()
-            else:
-                st.warning("No full-frame image is available for CNN detection.")
+        with top_left:
+            st.image(
+                draw_roi_overlay(frame, slots, roi_slots),
+                caption="Current parking-zone frame with ROI status overlay",
+                use_container_width=True,
+            )
 
-        st.image(
-            draw_roi_overlay(frame, slots, roi_slots),
-            caption=f"Current frame: {source_label}",
-            use_container_width=True,
-        )
+        with top_right:
+            if st.button("Run CNN Detection", type="primary"):
+                if can_classify_frame:
+                    model_key = MODEL_OPTIONS[selected_camera_model]
+                    model = cached_model(model_key)
+                    detected_slots = classify_rois(model, frame, roi_slots, image_size=config.image_size)
+                    detected_slots = apply_manual_status_override(detected_slots)
+                    detected_available, detected_occupied, detected_recommended = slot_counts(detected_slots)
+                    st.session_state.slot_results = detected_slots
+                    st.session_state.source_mode = f"CNN detection from {source_label} ({selected_camera_model})"
+                    st.session_state.status_note = "Status is based on CNN predictions from the current frame."
+                    st.session_state.last_updated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    st.session_state.last_detection_summary = {
+                        "Model used": selected_camera_model,
+                        "Total processed slots": len(detected_slots),
+                        "Available count": detected_available,
+                        "Occupied count": detected_occupied,
+                        "Best recommended slot": detected_recommended[0] if detected_recommended else "None",
+                        "Alternative recommended slots": ", ".join(detected_recommended[1:]) if len(detected_recommended) > 1 else "None",
+                    }
+                    st.rerun()
+                else:
+                    st.warning("No full-frame image is available for CNN detection.")
+
+            render_recommendation_card(st, recommended, slots)
+            render_status_cards(st, total_spaces, available, occupied)
+            st.caption("Detection runs on the current frame shown on the left. Each official ROI is cropped and classified by the selected CNN.")
+
+        render_parking_legend(st)
+        st.subheader("Parking Zone Status")
+        render_parking_map(st, slots)
 
         if st.session_state.get("last_detection_summary"):
             st.subheader("Detection Summary")
@@ -754,54 +909,80 @@ def run_app() -> None:
         else:
             st.info("Initial status is loaded from PKLot annotations. Run CNN Detection to update from the current frame.")
 
-        with st.expander("Advanced prediction details", expanded=False):
+        with st.expander("Advanced / debug details", expanded=False):
+            show_boundary = st.checkbox("Show monitored-zone boundary", value=False, key="detection_show_boundary")
+            if show_boundary:
+                st.image(
+                    draw_roi_overlay(frame, slots, roi_slots, boundary=roi_boundary, show_boundary=True),
+                    caption="Boundary debug overlay",
+                    use_container_width=True,
+                )
+            active_path_text = str(roi_map_path.relative_to(PROJECT_ROOT)) if roi_map_path else "built-in defaults"
+            st.write(f"Active ROI map: `{active_path_text}`")
+            st.write(f"Source mode: `{st.session_state.source_mode}`")
+            st.write(f"Last updated: `{st.session_state.last_updated}`")
+            st.write("Boundary is derived from active official ROI polygons.")
             st.dataframe(slots, use_container_width=True, hide_index=True)
-            st.subheader("Single-slot crop test")
-            uploaded_crop = st.file_uploader(
-                "Upload one parking-space crop",
-                type=["jpg", "jpeg", "png", "bmp", "webp"],
-                key="single_slot_upload",
-            )
-            if uploaded_crop is not None:
-                crop_image = Image.open(uploaded_crop).convert("RGB")
-                test_left, test_right = st.columns([1, 1])
-                test_left.image(crop_image, caption="Uploaded crop", use_container_width=True)
-                if st.button("Run single-slot CNN prediction", type="secondary"):
-                    model_key = MODEL_OPTIONS[selected_camera_model]
-                    model = cached_model(model_key)
-                    result = predict_parking_slot(model, crop_image, image_size=config.image_size)
-                    test_right.metric("Prediction", str(result["label"]))
-                    test_right.metric("Confidence", f"{float(result['confidence']):.3f}")
-                    test_right.write(f"Occupied probability: `{float(result['occupied_probability']):.6f}`")
-                    test_right.write(f"Inference time: `{float(result['inference_ms']):.2f} ms`")
 
-    with calibration_tab:
-        st.header("ROI Calibration")
-        st.write("The ROI map was extracted from official PKLot polygon annotations for the selected monitored parking zone.")
-        summary_rows = [
-            {"Item": "ROI source", "Value": "Official PKLot/Voxel51 annotations"},
-            {"Item": "Slot count", "Value": len(roi_slots)},
-            {"Item": "Rows", "Value": row_count_summary(roi_slots)},
-            {"Item": "Default frame", "Value": "assets/demo_frame_clean.jpg" if DEMO_FRAME_CLEAN_PATH.exists() else "assets/image.jpg"},
-        ]
-        st.table(summary_rows)
+    with driver_tab:
+        st.title("Recommended Parking")
+        render_recommendation_card(st, recommended, slots)
+        metric_left, metric_right = st.columns(2)
+        metric_left.metric("Available spaces", available)
+        metric_right.metric("Occupied spaces", occupied)
+        render_parking_legend(st)
+        st.subheader("Parking Zone Status")
+        render_parking_map(st, slots)
+        st.caption(f"Updated: {st.session_state.last_updated}")
+        if st.session_state.source_mode == "PKLot annotation status":
+            st.info("Initial parking status shown. Run CNN Detection from the Parking Detection tab to update from the current frame.")
 
-        preview_path = PROJECT_ROOT / "outputs" / "gui_roi_debug" / "official_roi_preview_clean.jpg"
-        if preview_path.exists():
-            st.image(Image.open(preview_path).convert("RGB"), caption="Clean official ROI preview", use_container_width=True)
-        else:
+    with methodology_tab:
+        st.header("ROI & Methodology")
+
+        summary_left, summary_right = st.columns([1, 1.25])
+        with summary_left:
+            st.subheader("Official ROI Map")
+            summary_rows = [
+                {"Item": "ROI source", "Value": "Official PKLot/Voxel51 annotations"},
+                {"Item": "Slot count", "Value": len(roi_slots)},
+                {"Item": "Rows", "Value": row_count_summary(roi_slots)},
+                {"Item": "Default frame", "Value": "assets/demo_frame_clean.jpg" if DEMO_FRAME_CLEAN_PATH.exists() else "assets/image.jpg"},
+            ]
+            st.table(summary_rows)
+            st.write("The prototype monitors a selected fixed-camera parking zone rather than every bay in the wider facility.")
+            st.write("Each official polygon ROI is cropped from the full frame and passed to a CNN classifier.")
+            st.write("The task is cropped ROI image classification; the CNN does not localize cars in the full frame.")
+            st.write("A full deployment could use multiple cameras or zones to cover a larger parking facility.")
+            st.write("CNN models: LeNet-5 CNN, AlexNet CNN, ResNet-18 CNN.")
+
+        with summary_right:
+            calibration_frame = default_demo_frame.copy() if default_demo_frame is not None else create_simulated_camera_frame(roi_slots)
             st.image(
-                draw_roi_overlay(Image.open(current_default_frame_path).convert("RGB"), slots, roi_slots) if current_default_frame_path else create_simulated_camera_frame(roi_slots),
-                caption="Generated ROI preview",
+                draw_roi_geometry_overlay(calibration_frame, roi_slots),
+                caption="Read-only official PKLot ROI map for the monitored zone",
                 use_container_width=True,
             )
 
+        preview_path = PROJECT_ROOT / "outputs" / "gui_roi_debug" / "official_roi_preview_clean.jpg"
         with st.expander("Advanced / developer ROI tools", expanded=False):
-            st.warning("Changing this may overwrite the official ROI map. The submitted demo should keep the official PKLot polygon ROIs.")
+            st.warning("Do not overwrite the official ROI map unless recalibrating the camera view.")
+            show_methodology_boundary = st.checkbox("Show monitored-zone boundary", value=False, key="methodology_show_boundary")
+            if show_methodology_boundary:
+                debug_frame = default_demo_frame.copy() if default_demo_frame is not None else create_simulated_camera_frame(roi_slots)
+                st.image(
+                    draw_roi_geometry_overlay(debug_frame, roi_slots, boundary=roi_boundary, show_boundary=True),
+                    caption="Boundary debug view",
+                    use_container_width=True,
+                )
             active_path_text = str(roi_map_path.relative_to(PROJECT_ROOT)) if roi_map_path else "built-in defaults"
             st.write(f"Active ROI map: `{active_path_text}`")
-            st.write(f"Boundary points: `{len(roi_boundary)}`")
+            st.write(f"Display boundary points: `{len(roi_boundary)}`")
+            st.write("Boundary is derived from active official ROI polygons.")
+            st.write("Rebuild script: `tools/rebuild_official_pklot_roi_map.py`")
             st.write(f"Status override file: `{MANUAL_STATUS_PATH.relative_to(PROJECT_ROOT)}`")
+            if preview_path.exists():
+                st.image(Image.open(preview_path).convert("RGB"), caption="Saved debug/reference preview", use_container_width=True)
             st.dataframe(
                 [
                     {
@@ -817,21 +998,6 @@ def run_app() -> None:
                 use_container_width=True,
                 hide_index=True,
             )
-
-    with about_tab:
-        st.header("About / Methodology")
-        st.write(
-            "This prototype monitors a selected fixed-camera parking zone. A clean PKLot full-frame image is paired "
-            "with official PKLot polygon ROIs that define each monitored parking space."
-        )
-        st.write(
-            "Each ROI is cropped from the full frame and passed to a CNN that classifies the parking-space crop as "
-            "occupied or empty. The task is image classification on cropped parking-space images, not object detection."
-        )
-        st.write(
-            "A full deployment could use multiple cameras or monitored zones to cover a larger parking facility."
-        )
-        st.write("Available CNN models: LeNet-5 CNN, AlexNet CNN, and ResNet-18 CNN.")
 
 
 if __name__ == "__main__":
