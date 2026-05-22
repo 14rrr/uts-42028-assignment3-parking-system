@@ -12,6 +12,13 @@ __pycache__/
 data/processed/
 data/raw/*
 *.log
+outputs/*.log
+outputs/streamlit_*.log
+outputs/gui_roi_predictions.csv
+
+# Local Part D demo feed generated from PKLot full-frame images.
+assets/pklot_demo_feed.mp4
+assets/pklot_demo_frames/
 
 # Stray local install artifact
 =0.20.0

@@ -1,0 +1,1764 @@
+{
+  "camera": {
+    "name": "PKLot monitored parking zone",
+    "source_image": "assets/image.jpg",
+    "roi_source": "Official PKLot parking-space annotations",
+    "note": "ROIs were extracted from PKLot annotations and filtered to the monitored camera zone."
+  },
+  "parking_zone_boundary": [
+    [
+      512,
+      55
+    ],
+    [
+      584,
+      51
+    ],
+    [
+      842,
+      42
+    ],
+    [
+      1022,
+      42
+    ],
+    [
+      1040,
+      73
+    ],
+    [
+      1075,
+      160
+    ],
+    [
+      1123,
+      286
+    ],
+    [
+      1169,
+      443
+    ],
+    [
+      1181,
+      498
+    ],
+    [
+      866,
+      502
+    ],
+    [
+      472,
+      497
+    ],
+    [
+      348,
+      491
+    ],
+    [
+      389,
+      365
+    ]
+  ],
+  "slots": [
+    {
+      "slot_id": "A01",
+      "row": "A",
+      "spot": 1,
+      "polygon": [
+        [
+          470,
+          184
+        ],
+        [
+          503,
+          187
+        ],
+        [
+          492,
+          230
+        ],
+        [
+          461,
+          229
+        ]
+      ],
+      "original_id": "6",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "A02",
+      "row": "A",
+      "spot": 2,
+      "polygon": [
+        [
+          505,
+          186
+        ],
+        [
+          535,
+          188
+        ],
+        [
+          530,
+          229
+        ],
+        [
+          500,
+          228
+        ]
+      ],
+      "original_id": "7",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "A03",
+      "row": "A",
+      "spot": 3,
+      "polygon": [
+        [
+          538,
+          186
+        ],
+        [
+          567,
+          186
+        ],
+        [
+          562,
+          232
+        ],
+        [
+          534,
+          232
+        ]
+      ],
+      "original_id": "8",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "A04",
+      "row": "A",
+      "spot": 4,
+      "polygon": [
+        [
+          571,
+          186
+        ],
+        [
+          599,
+          184
+        ],
+        [
+          597,
+          230
+        ],
+        [
+          565,
+          230
+        ]
+      ],
+      "original_id": "9",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "A05",
+      "row": "A",
+      "spot": 5,
+      "polygon": [
+        [
+          603,
+          186
+        ],
+        [
+          634,
+          188
+        ],
+        [
+          631,
+          227
+        ],
+        [
+          598,
+          230
+        ]
+      ],
+      "original_id": "10",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "A06",
+      "row": "A",
+      "spot": 6,
+      "polygon": [
+        [
+          634,
+          187
+        ],
+        [
+          664,
+          188
+        ],
+        [
+          664,
+          226
+        ],
+        [
+          632,
+          224
+        ]
+      ],
+      "original_id": "11",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "A07",
+      "row": "A",
+      "spot": 7,
+      "polygon": [
+        [
+          669,
+          186
+        ],
+        [
+          699,
+          188
+        ],
+        [
+          699,
+          227
+        ],
+        [
+          665,
+          225
+        ]
+      ],
+      "original_id": "12",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "A08",
+      "row": "A",
+      "spot": 8,
+      "polygon": [
+        [
+          705,
+          184
+        ],
+        [
+          734,
+          185
+        ],
+        [
+          734,
+          222
+        ],
+        [
+          702,
+          222
+        ]
+      ],
+      "original_id": "13",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "A09",
+      "row": "A",
+      "spot": 9,
+      "polygon": [
+        [
+          736,
+          182
+        ],
+        [
+          772,
+          183
+        ],
+        [
+          769,
+          223
+        ],
+        [
+          735,
+          225
+        ]
+      ],
+      "original_id": "14",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "A10",
+      "row": "A",
+      "spot": 10,
+      "polygon": [
+        [
+          775,
+          183
+        ],
+        [
+          807,
+          182
+        ],
+        [
+          805,
+          225
+        ],
+        [
+          775,
+          225
+        ]
+      ],
+      "original_id": "15",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "A11",
+      "row": "A",
+      "spot": 11,
+      "polygon": [
+        [
+          807,
+          183
+        ],
+        [
+          840,
+          185
+        ],
+        [
+          842,
+          222
+        ],
+        [
+          812,
+          220
+        ]
+      ],
+      "original_id": "16",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "A12",
+      "row": "A",
+      "spot": 12,
+      "polygon": [
+        [
+          844,
+          183
+        ],
+        [
+          879,
+          188
+        ],
+        [
+          876,
+          219
+        ],
+        [
+          846,
+          222
+        ]
+      ],
+      "original_id": "17",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "A13",
+      "row": "A",
+      "spot": 13,
+      "polygon": [
+        [
+          880,
+          183
+        ],
+        [
+          915,
+          182
+        ],
+        [
+          915,
+          219
+        ],
+        [
+          886,
+          219
+        ]
+      ],
+      "original_id": "18",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "A14",
+      "row": "A",
+      "spot": 14,
+      "polygon": [
+        [
+          918,
+          183
+        ],
+        [
+          955,
+          182
+        ],
+        [
+          956,
+          222
+        ],
+        [
+          917,
+          222
+        ]
+      ],
+      "original_id": "19",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "A15",
+      "row": "A",
+      "spot": 15,
+      "polygon": [
+        [
+          956,
+          178
+        ],
+        [
+          989,
+          177
+        ],
+        [
+          992,
+          222
+        ],
+        [
+          962,
+          222
+        ]
+      ],
+      "original_id": "20",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "A16",
+      "row": "A",
+      "spot": 16,
+      "polygon": [
+        [
+          987,
+          180
+        ],
+        [
+          1022,
+          181
+        ],
+        [
+          1027,
+          219
+        ],
+        [
+          993,
+          218
+        ]
+      ],
+      "original_id": "21",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "A17",
+      "row": "A",
+      "spot": 17,
+      "polygon": [
+        [
+          1022,
+          178
+        ],
+        [
+          1057,
+          175
+        ],
+        [
+          1068,
+          220
+        ],
+        [
+          1029,
+          220
+        ]
+      ],
+      "original_id": "22",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "B01",
+      "row": "B",
+      "spot": 1,
+      "polygon": [
+        [
+          426,
+          305
+        ],
+        [
+          431,
+          269
+        ],
+        [
+          471,
+          270
+        ],
+        [
+          460,
+          310
+        ]
+      ],
+      "original_id": "28",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "B02",
+      "row": "B",
+      "spot": 2,
+      "polygon": [
+        [
+          458,
+          308
+        ],
+        [
+          471,
+          267
+        ],
+        [
+          503,
+          269
+        ],
+        [
+          498,
+          311
+        ]
+      ],
+      "original_id": "29",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "B03",
+      "row": "B",
+      "spot": 3,
+      "polygon": [
+        [
+          503,
+          305
+        ],
+        [
+          510,
+          264
+        ],
+        [
+          546,
+          264
+        ],
+        [
+          537,
+          306
+        ]
+      ],
+      "original_id": "30",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "B04",
+      "row": "B",
+      "spot": 4,
+      "polygon": [
+        [
+          537,
+          307
+        ],
+        [
+          542,
+          266
+        ],
+        [
+          580,
+          269
+        ],
+        [
+          573,
+          304
+        ]
+      ],
+      "original_id": "31",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "B05",
+      "row": "B",
+      "spot": 5,
+      "polygon": [
+        [
+          573,
+          305
+        ],
+        [
+          578,
+          266
+        ],
+        [
+          618,
+          263
+        ],
+        [
+          611,
+          308
+        ]
+      ],
+      "original_id": "32",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "B06",
+      "row": "B",
+      "spot": 6,
+      "polygon": [
+        [
+          614,
+          306
+        ],
+        [
+          619,
+          263
+        ],
+        [
+          655,
+          263
+        ],
+        [
+          650,
+          307
+        ]
+      ],
+      "original_id": "33",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "B07",
+      "row": "B",
+      "spot": 7,
+      "polygon": [
+        [
+          648,
+          307
+        ],
+        [
+          653,
+          266
+        ],
+        [
+          688,
+          264
+        ],
+        [
+          687,
+          307
+        ]
+      ],
+      "original_id": "34",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "B08",
+      "row": "B",
+      "spot": 8,
+      "polygon": [
+        [
+          689,
+          309
+        ],
+        [
+          692,
+          260
+        ],
+        [
+          726,
+          262
+        ],
+        [
+          727,
+          307
+        ]
+      ],
+      "original_id": "35",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "B09",
+      "row": "B",
+      "spot": 9,
+      "polygon": [
+        [
+          728,
+          305
+        ],
+        [
+          731,
+          265
+        ],
+        [
+          766,
+          264
+        ],
+        [
+          765,
+          307
+        ]
+      ],
+      "original_id": "36",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "B10",
+      "row": "B",
+      "spot": 10,
+      "polygon": [
+        [
+          763,
+          305
+        ],
+        [
+          766,
+          261
+        ],
+        [
+          807,
+          260
+        ],
+        [
+          804,
+          306
+        ]
+      ],
+      "original_id": "37",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "B11",
+      "row": "B",
+      "spot": 11,
+      "polygon": [
+        [
+          809,
+          306
+        ],
+        [
+          809,
+          261
+        ],
+        [
+          846,
+          254
+        ],
+        [
+          848,
+          303
+        ]
+      ],
+      "original_id": "38",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "B12",
+      "row": "B",
+      "spot": 12,
+      "polygon": [
+        [
+          849,
+          305
+        ],
+        [
+          850,
+          257
+        ],
+        [
+          885,
+          257
+        ],
+        [
+          889,
+          310
+        ]
+      ],
+      "original_id": "39",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "B13",
+      "row": "B",
+      "spot": 13,
+      "polygon": [
+        [
+          888,
+          307
+        ],
+        [
+          885,
+          258
+        ],
+        [
+          925,
+          254
+        ],
+        [
+          931,
+          306
+        ]
+      ],
+      "original_id": "40",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "B14",
+      "row": "B",
+      "spot": 14,
+      "polygon": [
+        [
+          932,
+          307
+        ],
+        [
+          928,
+          261
+        ],
+        [
+          960,
+          257
+        ],
+        [
+          969,
+          305
+        ]
+      ],
+      "original_id": "41",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "B15",
+      "row": "B",
+      "spot": 15,
+      "polygon": [
+        [
+          971,
+          309
+        ],
+        [
+          966,
+          261
+        ],
+        [
+          1001,
+          255
+        ],
+        [
+          1014,
+          303
+        ]
+      ],
+      "original_id": "42",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "B16",
+      "row": "B",
+      "spot": 16,
+      "polygon": [
+        [
+          1017,
+          307
+        ],
+        [
+          1011,
+          258
+        ],
+        [
+          1042,
+          256
+        ],
+        [
+          1054,
+          304
+        ]
+      ],
+      "original_id": "43",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "B17",
+      "row": "B",
+      "spot": 17,
+      "polygon": [
+        [
+          1055,
+          303
+        ],
+        [
+          1051,
+          259
+        ],
+        [
+          1083,
+          258
+        ],
+        [
+          1098,
+          306
+        ]
+      ],
+      "original_id": "44",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "C01",
+      "row": "C",
+      "spot": 1,
+      "polygon": [
+        [
+          410,
+          365
+        ],
+        [
+          418,
+          307
+        ],
+        [
+          449,
+          308
+        ],
+        [
+          442,
+          368
+        ]
+      ],
+      "original_id": "50",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "C02",
+      "row": "C",
+      "spot": 2,
+      "polygon": [
+        [
+          443,
+          366
+        ],
+        [
+          456,
+          306
+        ],
+        [
+          497,
+          309
+        ],
+        [
+          482,
+          363
+        ]
+      ],
+      "original_id": "51",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "C03",
+      "row": "C",
+      "spot": 3,
+      "polygon": [
+        [
+          481,
+          364
+        ],
+        [
+          495,
+          310
+        ],
+        [
+          529,
+          309
+        ],
+        [
+          518,
+          365
+        ]
+      ],
+      "original_id": "52",
+      "ground_truth_status": "occupied"
+    },
+    {
+      "slot_id": "C04",
+      "row": "C",
+      "spot": 4,
+      "polygon": [
+        [
+          535,
+          304
+        ],
+        [
+          571,
+          308
+        ],
+        [
+          563,
+          362
+        ],
+        [
+          523,
+          364
+        ]
+      ],
+      "original_id": "53",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "C05",
+      "row": "C",
+      "spot": 5,
+      "polygon": [
+        [
+          565,
+          364
+        ],
+        [
+          573,
+          310
+        ],
+        [
+          604,
+          311
+        ],
+        [
+          604,
+          363
+        ]
+      ],
+      "original_id": "54",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "C06",
+      "row": "C",
+      "spot": 6,
+      "polygon": [
+        [
+          606,
+          362
+        ],
+        [
+          612,
+          310
+        ],
+        [
+          648,
+          312
+        ],
+        [
+          644,
+          364
+        ]
+      ],
+      "original_id": "55",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "C07",
+      "row": "C",
+      "spot": 7,
+      "polygon": [
+        [
+          643,
+          363
+        ],
+        [
+          650,
+          315
+        ],
+        [
+          685,
+          312
+        ],
+        [
+          685,
+          361
+        ]
+      ],
+      "original_id": "56",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "C08",
+      "row": "C",
+      "spot": 8,
+      "polygon": [
+        [
+          690,
+          361
+        ],
+        [
+          691,
+          312
+        ],
+        [
+          724,
+          310
+        ],
+        [
+          721,
+          361
+        ]
+      ],
+      "original_id": "57",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "C09",
+      "row": "C",
+      "spot": 9,
+      "polygon": [
+        [
+          725,
+          359
+        ],
+        [
+          728,
+          311
+        ],
+        [
+          766,
+          315
+        ],
+        [
+          764,
+          362
+        ]
+      ],
+      "original_id": "58",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "C10",
+      "row": "C",
+      "spot": 10,
+      "polygon": [
+        [
+          768,
+          362
+        ],
+        [
+          767,
+          313
+        ],
+        [
+          804,
+          310
+        ],
+        [
+          802,
+          360
+        ]
+      ],
+      "original_id": "59",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "C11",
+      "row": "C",
+      "spot": 11,
+      "polygon": [
+        [
+          808,
+          358
+        ],
+        [
+          810,
+          308
+        ],
+        [
+          845,
+          310
+        ],
+        [
+          848,
+          360
+        ]
+      ],
+      "original_id": "60",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "C12",
+      "row": "C",
+      "spot": 12,
+      "polygon": [
+        [
+          854,
+          362
+        ],
+        [
+          851,
+          311
+        ],
+        [
+          888,
+          312
+        ],
+        [
+          891,
+          356
+        ]
+      ],
+      "original_id": "61",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "C13",
+      "row": "C",
+      "spot": 13,
+      "polygon": [
+        [
+          895,
+          359
+        ],
+        [
+          888,
+          314
+        ],
+        [
+          929,
+          311
+        ],
+        [
+          934,
+          356
+        ]
+      ],
+      "original_id": "62",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "C14",
+      "row": "C",
+      "spot": 14,
+      "polygon": [
+        [
+          937,
+          362
+        ],
+        [
+          934,
+          314
+        ],
+        [
+          971,
+          309
+        ],
+        [
+          976,
+          356
+        ]
+      ],
+      "original_id": "63",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "C15",
+      "row": "C",
+      "spot": 15,
+      "polygon": [
+        [
+          980,
+          360
+        ],
+        [
+          972,
+          309
+        ],
+        [
+          1015,
+          307
+        ],
+        [
+          1022,
+          358
+        ]
+      ],
+      "original_id": "64",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "C16",
+      "row": "C",
+      "spot": 16,
+      "polygon": [
+        [
+          1023,
+          360
+        ],
+        [
+          1017,
+          312
+        ],
+        [
+          1056,
+          311
+        ],
+        [
+          1062,
+          357
+        ]
+      ],
+      "original_id": "65",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "C17",
+      "row": "C",
+      "spot": 17,
+      "polygon": [
+        [
+          1067,
+          358
+        ],
+        [
+          1059,
+          312
+        ],
+        [
+          1099,
+          304
+        ],
+        [
+          1113,
+          358
+        ]
+      ],
+      "original_id": "66",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "D01",
+      "row": "D",
+      "spot": 1,
+      "polygon": [
+        [
+          362,
+          471
+        ],
+        [
+          371,
+          420
+        ],
+        [
+          412,
+          420
+        ],
+        [
+          400,
+          471
+        ]
+      ],
+      "original_id": "72",
+      "ground_truth_status": "occupied"
+    },
+    {
+      "slot_id": "D02",
+      "row": "D",
+      "spot": 2,
+      "polygon": [
+        [
+          405,
+          472
+        ],
+        [
+          408,
+          420
+        ],
+        [
+          457,
+          416
+        ],
+        [
+          447,
+          471
+        ]
+      ],
+      "original_id": "73",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "D03",
+      "row": "D",
+      "spot": 3,
+      "polygon": [
+        [
+          446,
+          471
+        ],
+        [
+          458,
+          416
+        ],
+        [
+          508,
+          418
+        ],
+        [
+          490,
+          477
+        ]
+      ],
+      "original_id": "74",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "D04",
+      "row": "D",
+      "spot": 4,
+      "polygon": [
+        [
+          492,
+          472
+        ],
+        [
+          509,
+          418
+        ],
+        [
+          545,
+          418
+        ],
+        [
+          535,
+          475
+        ]
+      ],
+      "original_id": "75",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "D05",
+      "row": "D",
+      "spot": 5,
+      "polygon": [
+        [
+          535,
+          478
+        ],
+        [
+          542,
+          420
+        ],
+        [
+          588,
+          420
+        ],
+        [
+          578,
+          472
+        ]
+      ],
+      "original_id": "76",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "D06",
+      "row": "D",
+      "spot": 6,
+      "polygon": [
+        [
+          580,
+          477
+        ],
+        [
+          584,
+          422
+        ],
+        [
+          626,
+          419
+        ],
+        [
+          625,
+          476
+        ]
+      ],
+      "original_id": "77",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "D07",
+      "row": "D",
+      "spot": 7,
+      "polygon": [
+        [
+          625,
+          481
+        ],
+        [
+          631,
+          425
+        ],
+        [
+          672,
+          418
+        ],
+        [
+          667,
+          471
+        ]
+      ],
+      "original_id": "78",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "D08",
+      "row": "D",
+      "spot": 8,
+      "polygon": [
+        [
+          669,
+          475
+        ],
+        [
+          674,
+          419
+        ],
+        [
+          717,
+          421
+        ],
+        [
+          716,
+          470
+        ]
+      ],
+      "original_id": "79",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "D09",
+      "row": "D",
+      "spot": 9,
+      "polygon": [
+        [
+          721,
+          479
+        ],
+        [
+          718,
+          418
+        ],
+        [
+          761,
+          417
+        ],
+        [
+          764,
+          472
+        ]
+      ],
+      "original_id": "80",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "D10",
+      "row": "D",
+      "spot": 10,
+      "polygon": [
+        [
+          764,
+          475
+        ],
+        [
+          763,
+          422
+        ],
+        [
+          809,
+          417
+        ],
+        [
+          809,
+          476
+        ]
+      ],
+      "original_id": "81",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "D11",
+      "row": "D",
+      "spot": 11,
+      "polygon": [
+        [
+          811,
+          477
+        ],
+        [
+          811,
+          423
+        ],
+        [
+          853,
+          421
+        ],
+        [
+          858,
+          480
+        ]
+      ],
+      "original_id": "82",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "D12",
+      "row": "D",
+      "spot": 12,
+      "polygon": [
+        [
+          863,
+          482
+        ],
+        [
+          856,
+          423
+        ],
+        [
+          899,
+          422
+        ],
+        [
+          909,
+          480
+        ]
+      ],
+      "original_id": "83",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "D13",
+      "row": "D",
+      "spot": 13,
+      "polygon": [
+        [
+          909,
+          480
+        ],
+        [
+          903,
+          425
+        ],
+        [
+          946,
+          421
+        ],
+        [
+          957,
+          479
+        ]
+      ],
+      "original_id": "84",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "D14",
+      "row": "D",
+      "spot": 14,
+      "polygon": [
+        [
+          956,
+          476
+        ],
+        [
+          952,
+          423
+        ],
+        [
+          990,
+          418
+        ],
+        [
+          1004,
+          482
+        ]
+      ],
+      "original_id": "85",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "D15",
+      "row": "D",
+      "spot": 15,
+      "polygon": [
+        [
+          1009,
+          485
+        ],
+        [
+          997,
+          420
+        ],
+        [
+          1037,
+          419
+        ],
+        [
+          1054,
+          480
+        ]
+      ],
+      "original_id": "86",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "D16",
+      "row": "D",
+      "spot": 16,
+      "polygon": [
+        [
+          1056,
+          476
+        ],
+        [
+          1045,
+          422
+        ],
+        [
+          1080,
+          417
+        ],
+        [
+          1098,
+          481
+        ]
+      ],
+      "original_id": "87",
+      "ground_truth_status": "empty"
+    },
+    {
+      "slot_id": "D17",
+      "row": "D",
+      "spot": 17,
+      "polygon": [
+        [
+          1102,
+          475
+        ],
+        [
+          1089,
+          426
+        ],
+        [
+          1128,
+          416
+        ],
+        [
+          1151,
+          479
+        ]
+      ],
+      "original_id": "88",
+      "ground_truth_status": "empty"
+    }
+  ]
+}

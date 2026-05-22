@@ -153,6 +153,61 @@ GitHub publication note: all three active checkpoints are included in the
 private repository. The 228 MB AlexNet checkpoint is tracked with Git LFS
 because GitHub rejects regular blobs over 100 MB.
 
+## Part D Streamlit GUI Prototype
+
+The Part D GUI prototype is implemented in `app_streamlit.py` for the Parkivo
+parking availability system. It is a local Streamlit dashboard for a university
+assignment demo, not a production backend.
+
+The current Part D demo is still-frame based:
+
+```text
+clean full-frame PKLot image
+  -> official PKLot polygon ROI map
+  -> entry-gate trigger
+  -> frame capture from the monitored parking zone
+  -> CNN classification on each cropped slot
+  -> availability map
+  -> driver display recommendation
+```
+
+The active GUI uses `assets/demo_frame_clean.jpg` as the default frame and
+`assets/custom_slot_map.json` as the official PKLot/Voxel51 ROI map. The map
+contains 68 monitored slots from the selected parking zone. The trained LeNet-5,
+AlexNet, and ResNet-18 checkpoints perform image classification only on cropped
+parking-slot images; the GUI does not convert the project into an object
+detection system.
+
+The GUI includes:
+
+- Dashboard with recommendation, metrics, clean frame ROI overlay, and slot grid
+- Detection Demo for full-frame upload/default-frame CNN detection
+- read-only ROI Calibration summary for the official PKLot ROI map
+- concise methodology notes explaining fixed-camera ROI image classification
+
+The GUI does not require `data/processed/pklot_binary` to exist. Users can
+upload a full parking-zone frame for ROI cropping/classification. The previous
+video/time-lapse asset is no longer the core demo path.
+
+Do not use external parking-system source code, copied GUI implementations,
+copied model pipelines, or external project logic.
+
+Use the Conda `ai` environment on this machine:
+
+```powershell
+C:\Users\pc\miniconda3\envs\ai\python.exe -m streamlit run app_streamlit.py --server.port 8501
+```
+
+If Streamlit is missing, install it first:
+
+```powershell
+C:\Users\pc\miniconda3\envs\ai\python.exe -m pip install streamlit
+```
+
+ROI calibration for the submitted demo is based on official PKLot polygon
+annotations and is read-only in the main GUI to avoid overwriting the official
+map.
+
 ## Outputs
 
 After a successful run, the pipeline saves:
